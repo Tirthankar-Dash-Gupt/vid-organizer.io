@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Organizer</title>
+    <style>
+        /* body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        } */
+        h1 {
+            text-align: center;
+            padding: 20px;
+            background-color: #3498db;
+            color: white;
+            margin: 0;
+        }
+        title {
+          text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        input, button, select {
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px 0;
+            width: 100%;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            border-color: #3498db;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .search-box {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .search-box input {
+            flex: 1;
+            margin-right: 10px;
+            padding: 12px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .search-box button {
+            width: auto;
+        }
+        .video-list {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+        }
+        .video-item {
+            width: 100%;
+            max-width: 300px;
+            margin-bottom: 20px;
+            text-align: center;
+            position: relative;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: move;
+            background-color: #f9f9f9;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        iframe {
+            width: 100%;
+            height: 200px;
+            border: none;
+            border-radius: 8px;
+        }
+        .category {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        .menu {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            display: none;
+            z-index: 10;
+        }
+        .menu-item {
+            padding: 5px 10px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .menu-item:hover {
+            background-color: #f1f1f1;
+        }
+        .ellipsis {
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+            position: absolute;
+            top: 5px;
+            right: 5px;
+        }
+        .ellipsis:hover {
+            background-color: #2980b9;
+        }
+        .edit-input {
+            display: none;
+            margin-top: 5px;
+        }
+        .edit-buttons {
+            display: flex;
+            justify-content: space-between;
+        }
+        /* Drawer Styles */
+        body {
+          margin: 0;
+          padding: 0;
+          font-family: Arial, sans-serif;
+          position: relative; /* Set relative positioning for the body */
+      }
+
+      #video-container {
+          padding: 20px; /* Add padding for better spacing */
+      }
+
+      .drawer {
+          display: none; /* Hide the drawer by default */
+          position: fixed;
+          top: 0;
+          right: 0;
+          width: 300px;
+          height: 100%;
+          background-color: #fff;
+          box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
+          padding: 20px;
+          box-sizing: border-box;
+          transition: transform 0.3s ease;
+          z-index: 1000; /* Ensure the drawer appears above other elements */
+      }
+
+      .drawer-content {
+          margin-top: 20px; /* Add margin for content inside the drawer */
+      }
+
+      .add-video-input {
+          width: 50%; /* Ensure inputs take full width */
+          margin-bottom: 10px; /* Space between inputs */
+      }
+
+      h2 {
+        text-align: center;
+        color: lightblue;
+      }
+    </style>
+</head>
+<body>
+
+    <h1 class="vid-organizer">Video Organizer</h1>
+    <button class="drawer-button" onclick="toggleDrawer()">Add a new video</button>
+
+    <div class="drawer" id="drawer">
+        <button class="drawer-close" onclick="toggleDrawer()">Close</button>
+        <h2>Add New Video</h2>
+        <input type="text" id="video-title" placeholder="Enter video title" required>
+        <input type="text" id="video-url" placeholder="Enter YouTube video link" required>
+        <select id="video-category">
+            <option value="">Select category</option>
+            <option value="Study">Study</option>
+            <option value="Tutorial">Tutorial</option>
+            <option value="Lecture">Lecture</option>
+        </select>
+        <button onclick="addVideo()">Add Video</button>
+    </div>
+
+    <!-- Search Section -->
+    <div class="search-box">
+        <input type="text" id="search-input" placeholder="Search for videos...">
+        <button onclick="searchVideos()">Search</button>
+    </div>
+
+    <!-- Video List Section -->
+    <h2>Video List</h2>
+    <div id="video-list" class="video-list" ondragover="allowDrop(event)" ondrop="drop(event)">
+        <!-- Videos will be added here dynamically -->
+    </div>
+
+    <script>
+        let videos = [];
+
+        // Load videos from LocalStorage when the page loads
+        window.onload = function() {
+            videos = JSON.parse(localStorage.getItem('videos')) || [];
+            displayVideos(videos);
+        }
+
+        // Add a new video to the organizer
+        function addVideo() {
+            const title = document.getElementById('video-title').value.trim();
+            const url = document.getElementById('video-url').value.trim();
+            const category = document.getElementById('video-category').value;
+
+            if (title && url && category) {
+                const videoId = getYouTubeId(url);
+                if (videoId) {
+                    const video = { title, videoId, category };
+                    videos.push(video);
+                    localStorage.setItem('videos', JSON.stringify(videos));
+                    displayVideos(videos);
+                    clearForm();
+                    toggleDrawer();
+                } else {
+                    alert('Invalid YouTube link. Please enter a valid URL.');
+                }
+            } else {
+                alert('Please fill out all fields!');
+            }
+        }
+
+        // Function to extract YouTube video ID from a URL
+        function getYouTubeId(url) {
+            const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^&\n]{11})/;
+            const matches = url.match(regex);
+            return matches ? matches[1] : null;
+        }
+
+        // Display the list of videos
+        function displayVideos(videosToDisplay) {
+            const videoList = document.getElementById('video-list');
+            videoList.innerHTML = '';
+            videosToDisplay.forEach((video, index) => {
+                videoList.innerHTML += `
+                    <div class="video-item" draggable="true" ondragstart="drag(event, ${index})">
+                        <iframe src="https://www.youtube.com/embed/${video.videoId}" allowfullscreen></iframe>
+                        <h3>${video.title}</h3>
+                        <p class="category">${video.category}</p>
+                        <div class="ellipsis" onclick="toggleMenu(event, ${index})">...</div>
+                        <div class="menu" id="menu-${index}">
+                            <div class="menu-item" onclick="editVideo(${index})">Edit</div>
+                            <div class="menu-item" onclick="deleteVideo(${index})">Delete</div>
+                        </div>
+                        <div class="edit-input" id="edit-input-${index}">
+                            <input type="text" placeholder="New Title" id="new-title-${index}" />
+                            <input type="text" placeholder="New URL" id="new-url-${index}" />
+                            <div class="edit-buttons">
+                                <button onclick="saveEdit(${index})">Save</button>
+                                <button onclick="cancelEdit(${index})">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Clear the form inputs after adding a video
+        function clearForm() {
+            document.getElementById('video-title').value = '';
+            document.getElementById('video-url').value = '';
+            document.getElementById('video-category').value = '';
+        }
+
+        // Search for videos based on the input
+        function searchVideos() {
+            const searchInput = document.getElementById('search-input').value.trim().toLowerCase();
+            const filteredVideos = videos.filter(video => 
+                video.title.toLowerCase().includes(searchInput) || 
+                video.category.toLowerCase().includes(searchInput)
+            );
+            displayVideos(filteredVideos);
+        }
+
+       // Toggle the drawer for adding a new video
+        function toggleDrawer() {
+            const drawer = document.getElementById('drawer');
+            if (drawer.style.display === 'block') {
+                drawer.style.display = 'none';
+            } else {
+                drawer.style.display = 'block';
+            }
+        }
+
+
+        // Drag and drop functionality
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+
+        function drag(event, index) {
+            event.dataTransfer.setData('text/plain', index);
+        }
+
+        function drop(event) {
+            event.preventDefault();
+            const draggedIndex = event.dataTransfer.getData('text/plain');
+            const targetIndex = Array.from(event.target.parentNode.children).indexOf(event.target);
+            if (draggedIndex !== targetIndex) {
+                const draggedVideo = videos[draggedIndex];
+                videos.splice(draggedIndex, 1);
+                videos.splice(targetIndex, 0, draggedVideo);
+                localStorage.setItem('videos', JSON.stringify(videos));
+                displayVideos(videos);
+            }
+        }
+
+        // Toggle video menu
+        function toggleMenu(event, index) {
+            const menu = document.getElementById(`menu-${index}`);
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+            event.stopPropagation();
+        }
+
+        // Edit video
+        function editVideo(index) {
+            const editInput = document.getElementById(`edit-input-${index}`);
+            editInput.style.display = 'block';
+            const titleInput = document.getElementById(`new-title-${index}`);
+            const urlInput = document.getElementById(`new-url-${index}`);
+            titleInput.value = videos[index].title;
+            urlInput.value = `https://www.youtube.com/watch?v=${videos[index].videoId}`;
+        }
+
+        // Save edited video
+        function saveEdit(index) {
+            const newTitle = document.getElementById(`new-title-${index}`).value.trim();
+            const newUrl = document.getElementById(`new-url-${index}`).value.trim();
+            const newVideoId = getYouTubeId(newUrl);
+            if (newTitle && newVideoId) {
+                videos[index].title = newTitle;
+                videos[index].videoId = newVideoId;
+                localStorage.setItem('videos', JSON.stringify(videos));
+                displayVideos(videos);
+            } else {
+                alert('Please fill out both fields correctly!');
+            }
+        }
+
+        // Cancel edit
+        function cancelEdit(index) {
+            document.getElementById(`edit-input-${index}`).style.display = 'none';
+        }
+
+        // Delete video
+        function deleteVideo(index) {
+            videos.splice(index, 1);
+            localStorage.setItem('videos', JSON.stringify(videos));
+            displayVideos(videos);
+        }
+
+        // Close the video menu when clicking outside
+        window.onclick = function(event) {
+            const menus = document.querySelectorAll('.menu');
+            menus.forEach(menu => {
+                if (menu.style.display === 'block' && !menu.contains(event.target)) {
+                    menu.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
